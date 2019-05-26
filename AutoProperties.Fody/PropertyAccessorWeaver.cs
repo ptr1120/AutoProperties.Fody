@@ -254,12 +254,7 @@ namespace AutoProperties.Fody
                         _logger.LogInfo($"\tSkip {property.Name}, has [InterceptIgnore]");
                         continue;
                     }
-
-                    if (property.PropertyType.IsGenericParameter)
-                    {
-                        _logger.LogWarning($"\tSkip {property.Name}, properties with generic property types are not supported!");
-                        continue;
-                    }
+                    
 
                     try
                     {
@@ -483,10 +478,7 @@ namespace AutoProperties.Fody
                                         yield return Instruction.Create(OpCodes.Ldarg_0);
                                         yield return Instruction.Create(OpCodes.Ldfld, backingField.GetReference());
                                     }
-
-                                    yield return propertyType.IsValueType
-                                        ? Instruction.Create(OpCodes.Box, Import(propertyType))
-                                        : Instruction.Create(OpCodes.Castclass, Import(parameterType));
+                                    
                                     break;
 
                                 default:

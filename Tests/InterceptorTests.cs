@@ -163,5 +163,13 @@ public class InterceptorTests
         Assert.Equal("Test", target.Prop2); 
         Assert.Equal("Test2", target.Prop3);
     }
-}
 
+    [Theory]
+    [InlineData("ParentWithGenericBaseOfInt")]
+    public void GenericBaseClassOfInt_Test([NotNull] string className)
+    {
+        var parent = _assembly.GetInstance(className);
+        parent.GenericProperty = 1;
+        Assert.Contains("GenericProperty", parent.ChangedProperties);
+    }
+}
