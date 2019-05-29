@@ -401,14 +401,16 @@ namespace AutoProperties.Fody
                         throw new WeavingException($"property {_property} has a setter, but the class has no [SetInterceptor].", setMethod);
 
                     _logger.LogDebug($"\t\tIntercept setter");
-                    return BuildInstructions(backingField, setInterceptor, true).ToArray();
+                    var xx= BuildInstructions(backingField, setInterceptor, true).ToArray();
+                    return xx;
                 }
 
                 [NotNull, ItemNotNull]
                 [SuppressMessage("ReSharper", "AssignNullToNotNullAttribute")]
                 private IEnumerable<Instruction> BuildInstructions([NotNull] FieldDefinition backingField, [NotNull] MethodDefinition interceptor, bool isSetter)
                 {
-                    yield return Instruction.Create(OpCodes.Ldarg_0);
+                    var result=new List<Instruction>();
+                    result.Add(Instruction.Create(OpCodes.Ldarg_0));
 
                     var propertyType = _property.PropertyType;
                     Debug.Assert(propertyType != null, nameof(propertyType) + " != null");
@@ -426,65 +428,72 @@ namespace AutoProperties.Fody
                         // ReSharper disable once PossibleNullReferenceException
                         if (parameterType.IsByReference && parameterType.GetElementType().IsGenericParameter)
                         {
+                            // generic value (object) parameter
                             _isBackingFieldAccessed = true;
-                            yield return Instruction.Create(OpCodes.Ldarg_0);
-                            yield return Instruction.Create(OpCodes.Ldflda, backingField.GetReference());
+                            result.Add(Instruction.Create(OpCodes.Ldarg_0));
+                            result.Add(Instruction.Create(OpCodes.Ldflda, backingField.GetReference()));
                         }
                         else if (parameterType.IsGenericParameter)
                         {
+                            // generic value (value type) parameter
                             if (isSetter)
                             {
-                                yield return Instruction.Create(OpCodes.Ldarg_1);
+                                result.Add(Instruction.Create(OpCodes.Ldarg_1));
                             }
                             else
                             {
                                 _isBackingFieldAccessed = true;
-                                yield return Instruction.Create(OpCodes.Ldarg_0);
-                                yield return Instruction.Create(OpCodes.Ldfld, backingField.GetReference());
+                                result.Add(Instruction.Create(OpCodes.Ldarg_0));
+                                result.Add(Instruction.Create(OpCodes.Ldfld, backingField.GetReference()));
                             }
                         }
                         else
                         {
+                            // object value parameter
                             switch (parameterType.FullName)
                             {
                                 case "System.String":
-                                    yield return Instruction.Create(OpCodes.Ldstr, _property.Name);
+                                    result.Add(Instruction.Create(OpCodes.Ldstr, _property.Name));
                                     break;
 
                                 case "System.Type":
-                                    yield return Instruction.Create(OpCodes.Ldtoken, Import(propertyType));
-                                    yield return Instruction.Create(OpCodes.Call, _systemReferences.GetTypeFromHandle);
+                                    result.Add(Instruction.Create(OpCodes.Ldtoken, Import(propertyType)));
+                                    result.Add(Instruction.Create(OpCodes.Call, _systemReferences.GetTypeFromHandle));
                                     break;
 
                                 case "System.Reflection.PropertyInfo":
                                     // ReSharper disable once ArrangeRedundantParentheses
-                                    yield return Instruction.Create(OpCodes.Ldsfld, PropertyInfo.GetReference());
+                                    result.Add(Instruction.Create(OpCodes.Ldsfld, PropertyInfo.GetReference()));
                                     break;
 
                                 case "System.Reflection.FieldInfo":
                                     _isBackingFieldAccessed = true;
-                                    yield return Instruction.Create(OpCodes.Ldtoken, backingField.GetReference());
-                                    yield return Instruction.Create(OpCodes.Call, _systemReferences.GetFieldFromHandle);
+                                    result.Add(Instruction.Create(OpCodes.Ldtoken, backingField.GetReference()));
+                                    result.Add(Instruction.Create(OpCodes.Call, _systemReferences.GetFieldFromHandle));
                                     break;
 
                                 case "System.Object":
                                     if (isSetter)
                                     {
-                                        yield return Instruction.Create(OpCodes.Ldarg_1);
+                                        result.Add(Instruction.Create(OpCodes.Ldarg_1));
                                     }
                                     else
                                     {
                                         _isBackingFieldAccessed = true;
-                                        yield return Instruction.Create(OpCodes.Ldarg_0);
-                                        yield return Instruction.Create(OpCodes.Ldfld, backingField.GetReference());
+                                        result.Add(Instruction.Create(OpCodes.Ldarg_0));
+                                        result.Add(Instruction.Create(OpCodes.Ldfld, backingField.GetReference()));
                                     }
-                                    
+                                    if (propertyType.IsGenericParameter) 
+                                    {
+                                    }
+                                    result.Add( Instruction.Create(OpCodes.Box, Import(propertyType)));
                                     break;
 
                                 default:
                                     throw new WeavingException($"A parameter of type {parameterType} in the interceptor {interceptor} is not supported.", interceptor);
                             }
                         }
+
                     }
 
                     if (interceptor.ContainsGenericParameter)
@@ -497,20 +506,66 @@ namespace AutoProperties.Fody
                         // ReSharper disable once PossibleNullReferenceException
                         generic.GenericArguments.Add(Import(propertyType));
 
-                        yield return Instruction.Create(OpCodes.Call, generic);
+                        result.Add(Instruction.Create(OpCodes.Call, generic));
                     }
                     else
                     {
-                        yield return Instruction.Create(OpCodes.Call, interceptor.GetReference(_classDefinition));
+                        result.Add(Instruction.Create(OpCodes.Call, interceptor.GetReference(_classDefinition)));
 
                         if (!isSetter)
                         {
-                            yield return propertyType.IsValueType ? Instruction.Create(OpCodes.Unbox_Any, Import(propertyType)) : Instruction.Create(OpCodes.Castclass, Import(propertyType));
+                            result.Add(propertyType.IsValueType ? Instruction.Create(OpCodes.Unbox_Any, Import(propertyType)) : Instruction.Create(OpCodes.Castclass, Import(propertyType)));
                         }
                     }
 
-                    yield return Instruction.Create(OpCodes.Ret);
+                    result.Add(Instruction.Create(OpCodes.Ret));
+                    return result;
                 }
+            }
+            public static TypeReference ResolveGenericParameter(TypeReference type, TypeReference parent)
+            {
+                var genericParent = parent as GenericInstanceType;
+                if (genericParent == null)
+                    return type;
+
+                if (type.IsGenericParameter)
+                    return genericParent.GenericArguments[(type as GenericParameter).Position];
+
+                if (type.IsArray)
+                {
+                    var array = type as ArrayType;
+                    ResolveGenericParameter(array.ElementType,parent);
+                    return array;
+                }
+
+                if (!type.IsGenericInstance)
+                    return type;
+
+                var inst = type as GenericInstanceType;
+                for (var i = 0; i < inst.GenericArguments.Count; i++)
+                {
+                    if (!inst.GenericArguments[i].IsGenericParameter)
+                        continue;
+
+                    var param = inst.GenericArguments[i] as GenericParameter;
+                    inst.GenericArguments[i] = genericParent.GenericArguments[param.Position];
+                }
+
+                return inst;
+            }
+            public static Type GetMonoType(TypeReference type)
+            {
+                return Type.GetType(GetReflectionName(type), true);
+            }
+
+            private static string GetReflectionName(TypeReference type)
+            {
+                if (type.IsGenericInstance)
+                {
+                    var genericInstance = (GenericInstanceType)type;
+                    return string.Format("{0}.{1}[{2}]", genericInstance.Namespace, type.Name, String.Join(",", genericInstance.GenericArguments.Select(p => GetReflectionName(p)).ToArray()));
+                }
+                return type.FullName;
             }
         }
     }
