@@ -197,6 +197,6 @@ public class InterceptorTests
 
         parent.ArrayProperty = new[] {"Hello", "World"};
         Assert.Contains("ArrayProperty", parent.ChangedProperties);
-        Assert.Contains( new[] {"Hello", "World"},parent.ArrayProperty);
+        Assert.Equal(parent.ArrayProperty,new[] {"Hello", "World"});
     }
 }
