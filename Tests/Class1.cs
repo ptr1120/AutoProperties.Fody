@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using AutoProperties;
 
 namespace Tests
 {
@@ -34,7 +33,7 @@ namespace Tests
             }
             set
             {
-                SetValue("GenericProperty", typeof(TProperty), k__PropertyInfo, (object)value, value, ref k__BackingField);
+                SetValue("GenericProperty", typeof(TProperty), k__PropertyInfo, value, value, ref k__BackingField);
             }
         }
         
@@ -55,11 +54,11 @@ public class SomeClassWithoutGenerics : ChangeTrackable
     {
         get
         {
-            return base.GetValue<int>("ValueProperty", typeof(int), v__PropertyInfo, v__BackingField, v__BackingField, ref v__BackingField);
+            return GetValue("ValueProperty", typeof(int), v__PropertyInfo, v__BackingField, v__BackingField, ref v__BackingField);
         }
         set
         {
-            base.SetValue<int>("ValueProperty", typeof(int), v__PropertyInfo, value, value, ref v__BackingField);
+            SetValue("ValueProperty", typeof(int), v__PropertyInfo, value, value, ref v__BackingField);
         }
     }
 
@@ -67,11 +66,11 @@ public class SomeClassWithoutGenerics : ChangeTrackable
     {
         get
         {
-            return base.GetValue<string>("ReferenceProperty", typeof(string), r__PropertyInfo, r__BackingField, r__BackingField, ref r__BackingField);
+            return GetValue("ReferenceProperty", typeof(string), r__PropertyInfo, r__BackingField, r__BackingField, ref r__BackingField);
         }
         set
         {
-            base.SetValue<string>("ReferenceProperty", typeof(string), r__PropertyInfo, (object)value, value, ref r__BackingField);
+            SetValue("ReferenceProperty", typeof(string), r__PropertyInfo, value, value, ref r__BackingField);
         }
     }
 
@@ -79,11 +78,11 @@ public class SomeClassWithoutGenerics : ChangeTrackable
     {
         get
         {
-            return base.GetValue<string[]>("ArrayProperty", typeof(string[]), a__PropertyInfo, a__BackingField, a__BackingField, ref a__BackingField);
+            return GetValue("ArrayProperty", typeof(string[]), a__PropertyInfo, a__BackingField, a__BackingField, ref a__BackingField);
         }
         set
         {
-            base.SetValue<string[]>("ArrayProperty", typeof(string[]), a__PropertyInfo, (object)value, value, ref a__BackingField);
+            SetValue("ArrayProperty", typeof(string[]), a__PropertyInfo, value, value, ref a__BackingField);
         }
     }
 }
