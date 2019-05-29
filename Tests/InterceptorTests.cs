@@ -172,7 +172,7 @@ public class InterceptorTests
         parent.GenericProperty = 1;
         Assert.Contains("GenericProperty", parent.ChangedProperties);
     }
-    
+
     [Theory]
     [InlineData("ParentWithGenericBaseOfString")]
     public void GenericBaseClassOfString_Test([NotNull] string className)
@@ -180,5 +180,23 @@ public class InterceptorTests
         var parent = _assembly.GetInstance(className);
         parent.GenericProperty = "Hello";
         Assert.Contains("GenericProperty", parent.ChangedProperties);
+    }
+
+    [Theory]
+    [InlineData("SomeClassWithoutGenerics")]
+    public void SomeClassWithoutGenerics_Test([NotNull] string className)
+    {
+        var parent = _assembly.GetInstance(className);
+        parent.ValueProperty = 43;
+        Assert.Contains("ValueProperty", parent.ChangedProperties);
+        Assert.Equal(parent.ValueProperty, 43);
+
+        parent.ReferenceProperty = "Hello";
+        Assert.Contains("ReferenceProperty", parent.ChangedProperties);
+        Assert.Equal(parent.ReferenceProperty, "Hello");
+
+        parent.ArrayProperty = new[] {"Hello", "World"};
+        Assert.Contains("ArrayProperty", parent.ChangedProperties);
+        Assert.Contains( new[] {"Hello", "World"},parent.ArrayProperty);
     }
 }

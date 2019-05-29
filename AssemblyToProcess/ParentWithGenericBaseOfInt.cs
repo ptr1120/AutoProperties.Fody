@@ -20,8 +20,6 @@ public abstract class GenericBaseSome<TProperty> : ChangeTrackable
 public abstract class ChangeTrackable
 {
     [InterceptIgnore]
-    public virtual Action<object, string> NotifyPropertyChanged { get; set; }
-
     public virtual HashSet<string> ChangedProperties { get; } = new HashSet<string>();
 
     [SetInterceptor]
@@ -37,4 +35,12 @@ public abstract class ChangeTrackable
     {
         return genericFieldValue;
     }
+}
+
+public class SomeClassWithoutGenerics : ChangeTrackable
+{
+    public int ValueProperty { get; set; }
+    public string ReferenceProperty { get; set; }
+
+    public string[] ArrayProperty { get; set; }
 }

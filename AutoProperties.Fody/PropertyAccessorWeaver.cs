@@ -483,9 +483,9 @@ namespace AutoProperties.Fody
                                         result.Add(Instruction.Create(OpCodes.Ldarg_0));
                                         result.Add(Instruction.Create(OpCodes.Ldfld, backingField.GetReference()));
                                     }
-                                    if (propertyType.IsGenericParameter) 
-                                    {
-                                    }
+
+                                    var instanceGeneric= propertyType.IsGenericInstance;
+                                    var parameterGeneric= propertyType.IsGenericParameter;
                                     result.Add( Instruction.Create(OpCodes.Box, Import(propertyType)));
                                     break;
 
@@ -493,7 +493,6 @@ namespace AutoProperties.Fody
                                     throw new WeavingException($"A parameter of type {parameterType} in the interceptor {interceptor} is not supported.", interceptor);
                             }
                         }
-
                     }
 
                     if (interceptor.ContainsGenericParameter)
@@ -521,51 +520,6 @@ namespace AutoProperties.Fody
                     result.Add(Instruction.Create(OpCodes.Ret));
                     return result;
                 }
-            }
-            public static TypeReference ResolveGenericParameter(TypeReference type, TypeReference parent)
-            {
-                var genericParent = parent as GenericInstanceType;
-                if (genericParent == null)
-                    return type;
-
-                if (type.IsGenericParameter)
-                    return genericParent.GenericArguments[(type as GenericParameter).Position];
-
-                if (type.IsArray)
-                {
-                    var array = type as ArrayType;
-                    ResolveGenericParameter(array.ElementType,parent);
-                    return array;
-                }
-
-                if (!type.IsGenericInstance)
-                    return type;
-
-                var inst = type as GenericInstanceType;
-                for (var i = 0; i < inst.GenericArguments.Count; i++)
-                {
-                    if (!inst.GenericArguments[i].IsGenericParameter)
-                        continue;
-
-                    var param = inst.GenericArguments[i] as GenericParameter;
-                    inst.GenericArguments[i] = genericParent.GenericArguments[param.Position];
-                }
-
-                return inst;
-            }
-            public static Type GetMonoType(TypeReference type)
-            {
-                return Type.GetType(GetReflectionName(type), true);
-            }
-
-            private static string GetReflectionName(TypeReference type)
-            {
-                if (type.IsGenericInstance)
-                {
-                    var genericInstance = (GenericInstanceType)type;
-                    return string.Format("{0}.{1}[{2}]", genericInstance.Namespace, type.Name, String.Join(",", genericInstance.GenericArguments.Select(p => GetReflectionName(p)).ToArray()));
-                }
-                return type.FullName;
             }
         }
     }
