@@ -484,11 +484,12 @@ namespace AutoProperties.Fody
                                         result.Add(Instruction.Create(OpCodes.Ldfld, backingField.GetReference()));
                                     }
 
-                                    if (propertyType.IsGenericParameter||propertyType.IsValueType)
+                                    if (propertyType.IsGenericParameter || propertyType.IsValueType)
                                     {
                                         // we only need to box for value types or if type is generic (not for reference)
-                                        result.Add( Instruction.Create(OpCodes.Box, Import(propertyType)));
+                                        result.Add(Instruction.Create(OpCodes.Box, Import(propertyType)));
                                     }
+
                                     break;
 
                                 default:
